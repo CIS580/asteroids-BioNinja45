@@ -5,15 +5,18 @@
 const Game = require('./game.js');
 const Player = require('./player.js');
 const Asteroid = require('./asteroid.js');
+const Bullet = require('./bullet.js');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
 
-var asteroids = [];
+var objects = [];
+var count = 0;
+var playerIndex = 0;
+objects.push(player);
 createAsteroids(10);
-console.log(asteroids.length);
 
 /**
  * @function masterLoop
@@ -28,10 +31,9 @@ var masterLoop = function(timestamp) {
 masterLoop(performance.now());
 
 function createAsteroids(total){
-	console.log("okay");
 	for(i=0;i<total;i++){
-		var asteroid = new Asteroid({x: Math.random() * i*50 , y: Math.random() * i*50}, canvas);
-		asteroids.push(asteroid);
+		var asteroid = new Asteroid({x: Math.random() *50 + 100*i , y: (i%2==0)?50:500}, canvas);
+		objects.push(asteroid);
 	}
 }
 /**
@@ -44,18 +46,19 @@ function createAsteroids(total){
  */
 function update(elapsedTime) {
 	
-	asteroids.sort(function(a,b){return a.position.x - b.position.x});
+	objects.sort(function(a,b){return a.position.x - b.position.x});
 	var active = [];
 	var potentiallyColliding = [];
-	asteroids.forEach(function(asteroid, aindex){
-		asteroid.color="white";
-		active = active.filter(function(asteroid2){
-			return asteroid.position.x - asteroid2.position.x  < asteroid.radius + asteroid2.radius;
+	objects.forEach(function(object, index){
+		object.color="white";
+		object.index=index;
+		active = active.filter(function(object2){
+			return object.position.x - object2.position.x  < object.radius + object2.radius;
 		});
-		active.forEach(function(asteroid2, bindex){
-			potentiallyColliding.push({a: asteroid2, b: asteroid});
+		active.forEach(function(object2, bindex){
+			potentiallyColliding.push({a: object2, b: object});
 		});
-		active.push(asteroid);
+		active.push(object);
 	});
 	
 	var collisions = [];
@@ -71,14 +74,58 @@ function update(elapsedTime) {
 			// Push the colliding pair into our collisions array
 			collisions.push(pair);
 		}
-  });
-	
+	});
+	collisions.forEach(function(pair){
+		if(pair.a.id=="player"||pair.b.id=="player"){
+			pair.a.color="orange";
+			pair.b.color="orange";
+		}
+		else if((pair.a.id=="bullet" || pair.b.id=="bullet") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
+			var bulletObject = (pair.a.id=="bullet")?pair.a:pair.b;
+			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
+			if(asteroidObject.index==0)asteroidObject.index=1;
+			var asteroidRadius=asteroidObject.radius;
+			if(asteroidRadius>30){
+				var newRadius = asteroidRadius/2;
+				var asteroid = new Asteroid({x: asteroidObject.position.x+newRadius + 1 , y: asteroidObject.position.y}, canvas);
+				asteroid.radius=newRadius+5;
+				var asteroid2 = new Asteroid({x: asteroidObject.position.x-newRadius + 1 , y: asteroidObject.position.y}, canvas);
+				asteroid2.radius=newRadius+5;
+				objects.push(asteroid);
+				objects.push(asteroid2);
+			}
+			objects.splice(bulletObject.index,1);
+			objects.splice(asteroidObject.index-1,1);
+			
+		}
+	});
+	if(player.fire==true){
+		console.log(player.fire);
+	}
   player.update(elapsedTime);
-  asteroids.forEach(function(asteroid, index) {
-	  asteroid.update(elapsedTime);
+  objects.forEach(function(object, index) {
+	  //delete bullet if out of bounds
+	  if(object.id=="bullet"){
+		  if(object.outOfBounds()){
+			  objects.splice(index,1);
+			  return;
+		  }
+	  }
+	  else if(object.id=="player"){
+		  playerIndex=index;
+	  }
+	  object.update(elapsedTime);
   });
   
-  // TODO: Update the game objects
+  if(count>5){
+	  var playerObject = objects[playerIndex];
+	  if(playerObject.fire==true){
+		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},canvas));
+	  }
+	  count=0;
+	  playerObject.fire=false;
+  }
+  count++;
 }
 
 /**
@@ -92,12 +139,12 @@ function render(elapsedTime, ctx) {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   player.render(elapsedTime, ctx);
-  asteroids.forEach(function(asteroid, index) {
-	  asteroid.render(elapsedTime,ctx);
+  objects.forEach(function(object, index) {
+	  object.render(elapsedTime,ctx);
   });
 }
 
-},{"./asteroid.js":2,"./game.js":3,"./player.js":4}],2:[function(require,module,exports){
+},{"./asteroid.js":2,"./bullet.js":3,"./game.js":4,"./player.js":5}],2:[function(require,module,exports){
 "use strict";
 
 
@@ -125,6 +172,8 @@ function Asteroid(position, canvas) {
   }
   this.radius = Math.random() * 10 + 35;
   this.color="white";
+  this.id="asteroid";
+  this.index=0;
 }
 
 
@@ -162,6 +211,77 @@ Asteroid.prototype.render = function(time, ctx) {
 }
 
 },{}],3:[function(require,module,exports){
+"use strict";
+
+
+/**
+ * @module exports the Bullet class
+ */
+module.exports = exports = Bullet;
+
+/**
+ * @constructor Bullet
+ * Creates a new Bullet object
+ * @param {Postition} position object specifying an x and y
+ */
+function Bullet(position, velocity, canvas) {
+  this.worldWidth = canvas.width;
+  this.worldHeight = canvas.height;
+  this.position = {
+    x: position.x,
+    y: position.y
+  };
+  
+  this.velocity = {
+    x: velocity.x,
+    y: velocity.y
+  }
+  this.radius = 8;
+  this.color="white";
+  this.id="bullet";
+  this.index=0;
+}
+
+
+
+/**
+ * @function updates the Bullet object
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ */
+Bullet.prototype.update = function(time) {
+  // Apply velocity
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+  // Wrap around the screen
+  
+}
+
+Bullet.prototype.outOfBounds = function(){
+  if(this.position.x < 0 || this.position.x > this.worldWidth ||
+	this.position.y < 0 || this.position.y > this.worldHeight) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * @function renders the Bullet into the provided context
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ * {CanvasRenderingContext2D} ctx the context to render into
+ */
+Bullet.prototype.render = function(time, ctx) {
+  ctx.save();
+
+  // Draw Bullet's ship
+  ctx.beginPath();
+  ctx.arc(this.position.x,this.position.y,this.radius,0,2*Math.PI);
+  ctx.strokeStyle = this.color;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+},{}],4:[function(require,module,exports){
 "use strict";
 
 /**
@@ -219,7 +339,7 @@ Game.prototype.loop = function(newTime) {
   this.frontCtx.drawImage(this.backBuffer, 0, 0);
 }
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 
 const MS_PER_FRAME = 1000/8;
@@ -238,6 +358,7 @@ function Player(position, canvas) {
   this.worldWidth = canvas.width;
   this.worldHeight = canvas.height;
   this.state = "idle";
+  this.id="player";
   this.position = {
     x: position.x,
     y: position.y
@@ -247,10 +368,13 @@ function Player(position, canvas) {
     y: 0
   }
   this.angle = 0;
-  this.radius  = 64;
+  this.radius  = 12;
   this.thrusting = false;
   this.steerLeft = false;
   this.steerRight = false;
+  this.fire = false;
+  this.color="white";
+  this.index=0;
 
   var self = this;
   window.onkeydown = function(event) {
@@ -267,6 +391,9 @@ function Player(position, canvas) {
       case 'd':
         self.steerRight = true;
         break;
+	  case ' ':
+		self.fire = true;
+		break;
     }
   }
 
@@ -284,6 +411,7 @@ function Player(position, canvas) {
       case 'd':
         self.steerRight = false;
         break;
+	  
     }
   }
 }
@@ -338,7 +466,7 @@ Player.prototype.render = function(time, ctx) {
   ctx.lineTo(0, 0);
   ctx.lineTo(10, 10);
   ctx.closePath();
-  ctx.strokeStyle = 'white';
+  ctx.strokeStyle = this.color;
   ctx.stroke();
 
   // Draw engine thrust

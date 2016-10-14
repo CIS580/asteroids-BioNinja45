@@ -25,6 +25,8 @@ function Asteroid(position, canvas) {
   }
   this.radius = Math.random() * 10 + 35;
   this.color="white";
+  this.id="asteroid";
+  this.index=0;
 }
 
 

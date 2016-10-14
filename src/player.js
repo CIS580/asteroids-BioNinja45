@@ -16,6 +16,7 @@ function Player(position, canvas) {
   this.worldWidth = canvas.width;
   this.worldHeight = canvas.height;
   this.state = "idle";
+  this.id="player";
   this.position = {
     x: position.x,
     y: position.y
@@ -25,10 +26,13 @@ function Player(position, canvas) {
     y: 0
   }
   this.angle = 0;
-  this.radius  = 64;
+  this.radius  = 12;
   this.thrusting = false;
   this.steerLeft = false;
   this.steerRight = false;
+  this.fire = false;
+  this.color="white";
+  this.index=0;
 
   var self = this;
   window.onkeydown = function(event) {
@@ -45,6 +49,9 @@ function Player(position, canvas) {
       case 'd':
         self.steerRight = true;
         break;
+	  case ' ':
+		self.fire = true;
+		break;
     }
   }
 
@@ -62,6 +69,7 @@ function Player(position, canvas) {
       case 'd':
         self.steerRight = false;
         break;
+	  
     }
   }
 }
@@ -116,7 +124,7 @@ Player.prototype.render = function(time, ctx) {
   ctx.lineTo(0, 0);
   ctx.lineTo(10, 10);
   ctx.closePath();
-  ctx.strokeStyle = 'white';
+  ctx.strokeStyle = this.color;
   ctx.stroke();
 
   // Draw engine thrust
