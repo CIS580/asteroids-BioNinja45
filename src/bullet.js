@@ -11,22 +11,24 @@ module.exports = exports = Bullet;
  * Creates a new Bullet object
  * @param {Postition} position object specifying an x and y
  */
-function Bullet(position, velocity, canvas) {
+function Bullet(position, velocity, angle, canvas) {
   this.worldWidth = canvas.width;
   this.worldHeight = canvas.height;
   this.position = {
     x: position.x,
     y: position.y
   };
-  
+  console
   this.velocity = {
-    x: velocity.x,
-    y: velocity.y
+    x: velocity.x * Math.cos(angle) - velocity.y*Math.sin(angle),
+    y: velocity.y * Math.cos(angle) + velocity.x*Math.sin(angle)
   }
   this.radius = 8;
   this.color="white";
   this.id="bullet";
   this.index=0;
+  this.angle = angle;
+  console.log(this.angle);
 }
 
 

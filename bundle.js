@@ -85,7 +85,7 @@ function update(elapsedTime) {
 			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
 			if(asteroidObject.index==0)asteroidObject.index=1;
 			var asteroidRadius=asteroidObject.radius;
-			if(asteroidRadius>30){
+			if(asteroidRadius>20){
 				var newRadius = asteroidRadius/2;
 				var asteroid = new Asteroid({x: asteroidObject.position.x+newRadius + 1 , y: asteroidObject.position.y}, canvas);
 				asteroid.radius=newRadius+5;
@@ -94,8 +94,14 @@ function update(elapsedTime) {
 				objects.push(asteroid);
 				objects.push(asteroid2);
 			}
-			objects.splice(bulletObject.index,1);
-			objects.splice(asteroidObject.index-1,1);
+			if(pair.a.id=="bullet"){
+				objects.splice(bulletObject.index,1);
+				objects.splice(asteroidObject.index-1,1);
+			}
+			else{
+				objects.splice(asteroidObject.index,1);
+				objects.splice(bulletObject.index-1,1);
+			}
 			
 		}
 	});
@@ -120,8 +126,9 @@ function update(elapsedTime) {
   if(count>5){
 	  var playerObject = objects[playerIndex];
 	  if(playerObject.fire==true){
-		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},canvas));
+		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
 	  }
+	  console.log(playerObject.fire);
 	  count=0;
 	  playerObject.fire=false;
   }
@@ -224,7 +231,7 @@ module.exports = exports = Bullet;
  * Creates a new Bullet object
  * @param {Postition} position object specifying an x and y
  */
-function Bullet(position, velocity, canvas) {
+function Bullet(position, velocity, angle, canvas) {
   this.worldWidth = canvas.width;
   this.worldHeight = canvas.height;
   this.position = {
@@ -233,13 +240,14 @@ function Bullet(position, velocity, canvas) {
   };
   
   this.velocity = {
-    x: velocity.x,
-    y: velocity.y
+    x: velocity.y*Math.sin(angle)-velocity.x * Math.cos(angle),
+    y: velocity.y * Math.cos(angle) + velocity.x*Math.sin(angle)
   }
   this.radius = 8;
   this.color="white";
   this.id="bullet";
   this.index=0;
+  this.angle = angle;
 }
 
 

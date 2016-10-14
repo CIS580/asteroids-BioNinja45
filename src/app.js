@@ -93,8 +93,14 @@ function update(elapsedTime) {
 				objects.push(asteroid);
 				objects.push(asteroid2);
 			}
-			objects.splice(bulletObject.index,1);
-			objects.splice(asteroidObject.index-1,1);
+			if(pair.a.id=="bullet"){
+				objects.splice(bulletObject.index,1);
+				objects.splice(asteroidObject.index-1,1);
+			}
+			else{
+				objects.splice(asteroidObject.index,1);
+				objects.splice(bulletObject.index-1,1);
+			}
 			
 		}
 	});
@@ -117,10 +123,14 @@ function update(elapsedTime) {
   });
   
   if(count>5){
-	  var playerObject = objects[playerIndex];
+	  var playerObject = objects.filter(function(obj){
+		  
+		  return obj.id=="player";
+	  });
 	  if(playerObject.fire==true){
-		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},canvas));
+		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle,canvas));
 	  }
+	  console.log("made it");
 	  count=0;
 	  playerObject.fire=false;
   }
