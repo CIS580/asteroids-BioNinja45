@@ -4,11 +4,16 @@
 /* Classes */
 const Game = require('./game.js');
 const Player = require('./player.js');
+const Asteroid = require('./asteroid.js');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
+
+var asteroids = [];
+createAsteroids(10);
+console.log(asteroids.length);
 
 /**
  * @function masterLoop
@@ -16,12 +21,19 @@ var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
  * @param {DOMHighResTimeStamp} timestamp the current time
  */
 var masterLoop = function(timestamp) {
+	
   game.loop(timestamp);
   window.requestAnimationFrame(masterLoop);
 }
 masterLoop(performance.now());
 
-
+function createAsteroids(total){
+	console.log("okay");
+	for(i=0;i<total;i++){
+		var asteroid = new Asteroid({x: Math.random() * i*50 , y: Math.random() * i*50}, canvas);
+		asteroids.push(asteroid);
+	}
+}
 /**
  * @function update
  * Updates the game state, moving
@@ -31,7 +43,41 @@ masterLoop(performance.now());
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
+	
+	asteroids.sort(function(a,b){return a.position.x - b.position.x});
+	var active = [];
+	var potentiallyColliding = [];
+	asteroids.forEach(function(asteroid, aindex){
+		asteroid.color="white";
+		active = active.filter(function(asteroid2){
+			return asteroid.position.x - asteroid2.position.x  < asteroid.radius + asteroid2.radius;
+		});
+		active.forEach(function(asteroid2, bindex){
+			potentiallyColliding.push({a: asteroid2, b: asteroid});
+		});
+		active.push(asteroid);
+	});
+	
+	var collisions = [];
+	potentiallyColliding.forEach(function(pair){
+		var distSquared =
+		Math.pow(pair.a.position.x - pair.b.position.x, 2) +
+		Math.pow(pair.a.position.y - pair.b.position.y, 2);
+		// (15 + 15)^2 = 900 -> sum of two balls' raidius squared
+		if(distSquared < Math.pow(pair.a.radius + pair.b.radius,2)) {
+			// Color the collision pair for visual debugging
+			pair.a.color = 'red';
+			pair.b.color = 'green';
+			// Push the colliding pair into our collisions array
+			collisions.push(pair);
+		}
+  });
+	
   player.update(elapsedTime);
+  asteroids.forEach(function(asteroid, index) {
+	  asteroid.update(elapsedTime);
+  });
+  
   // TODO: Update the game objects
 }
 
@@ -46,9 +92,76 @@ function render(elapsedTime, ctx) {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   player.render(elapsedTime, ctx);
+  asteroids.forEach(function(asteroid, index) {
+	  asteroid.render(elapsedTime,ctx);
+  });
 }
 
-},{"./game.js":2,"./player.js":3}],2:[function(require,module,exports){
+},{"./asteroid.js":2,"./game.js":3,"./player.js":4}],2:[function(require,module,exports){
+"use strict";
+
+
+/**
+ * @module exports the Asteroid class
+ */
+module.exports = exports = Asteroid;
+
+/**
+ * @constructor Asteroid
+ * Creates a new Asteroid object
+ * @param {Postition} position object specifying an x and y
+ */
+function Asteroid(position, canvas) {
+  this.worldWidth = canvas.width;
+  this.worldHeight = canvas.height;
+  this.position = {
+    x: position.x,
+    y: position.y
+  };
+  
+  this.velocity = {
+    x: Math.random()  * (Math.random() < 0.5 ? -1 : 1),
+    y: Math.random()  * (Math.random() < 0.5 ? -1 : 1)
+  }
+  this.radius = Math.random() * 10 + 35;
+  this.color="white";
+}
+
+
+
+/**
+ * @function updates the Asteroid object
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ */
+Asteroid.prototype.update = function(time) {
+  // Apply velocity
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+  // Wrap around the screen
+  if(this.position.x < 0) this.position.x += this.worldWidth;
+  if(this.position.x > this.worldWidth) this.position.x -= this.worldWidth;
+  if(this.position.y < 0) this.position.y += this.worldHeight;
+  if(this.position.y > this.worldHeight) this.position.y -= this.worldHeight;
+}
+
+/**
+ * @function renders the Asteroid into the provided context
+ * {DOMHighResTimeStamp} time the elapsed time since the last frame
+ * {CanvasRenderingContext2D} ctx the context to render into
+ */
+Asteroid.prototype.render = function(time, ctx) {
+  ctx.save();
+
+  // Draw Asteroid's ship
+  ctx.beginPath();
+  ctx.arc(this.position.x,this.position.y,this.radius,0,2*Math.PI);
+  ctx.strokeStyle = this.color;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+},{}],3:[function(require,module,exports){
 "use strict";
 
 /**
@@ -106,7 +219,7 @@ Game.prototype.loop = function(newTime) {
   this.frontCtx.drawImage(this.backBuffer, 0, 0);
 }
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 "use strict";
 
 const MS_PER_FRAME = 1000/8;

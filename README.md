@@ -8,11 +8,17 @@ You will be building a clone of Asteroids, where the purpose is to pilot a ship 
 
 You may use the art provided, or your own.  Additionally, you do not need to make your game concern asteroids - as long as the core game mechanic is the same, feel free to explore.
 
+
 1. Your game should involve steering a player's ship around space.  Should you move off-screen, your player should wrap back on-screen on the opposite side (10 points).
+3. Asteroids should move along an initially random velocity vector.  If they move off-screen, they should wrap to the opposite side of the screen (10 points).
+
+
+
+
 
 2. You should render a significant number (at least ten) asteroids on screen.  If all asteroids are destroyed, a new level with more asteroids is begun (10 points).
 
-3. Asteroids should move along an initially random velocity vector.  If they move off-screen, they should wrap to the opposite side of the screen (10 points).
+
 
 4. Asteroids that collide with one another should break away from each other according to Newtonian mechanics while playing a sound effect.  Asteroids should be of different masses, determined randomly when created (20 points).
 
