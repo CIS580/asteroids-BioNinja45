@@ -18,17 +18,16 @@ function Bullet(position, velocity, angle, canvas) {
     x: position.x,
     y: position.y
   };
-  console
+  
   this.velocity = {
-    x: velocity.x * Math.cos(angle) - velocity.y*Math.sin(angle),
+    x: velocity.y*Math.sin(angle)-velocity.x * Math.cos(angle),
     y: velocity.y * Math.cos(angle) + velocity.x*Math.sin(angle)
   }
-  this.radius = 8;
+  this.radius = 3;
   this.color="white";
   this.id="bullet";
   this.index=0;
   this.angle = angle;
-  console.log(this.angle);
 }
 
 

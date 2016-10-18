@@ -11,7 +11,7 @@ const Bullet = require('./bullet.js');
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
-
+var laserShoot = new Audio("assets/Laser_Shoot.wav");
 var objects = [];
 var count = 0;
 var playerIndex = 0;
@@ -85,12 +85,14 @@ function update(elapsedTime) {
 			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
 			if(asteroidObject.index==0)asteroidObject.index=1;
 			var asteroidRadius=asteroidObject.radius;
-			if(asteroidRadius>20){
+			if(asteroidRadius>13){
+				
 				var newRadius = asteroidRadius/2;
+				console.log(newRadius);
 				var asteroid = new Asteroid({x: asteroidObject.position.x+newRadius + 1 , y: asteroidObject.position.y}, canvas);
-				asteroid.radius=newRadius+5;
+				asteroid.radius=newRadius;
 				var asteroid2 = new Asteroid({x: asteroidObject.position.x-newRadius + 1 , y: asteroidObject.position.y}, canvas);
-				asteroid2.radius=newRadius+5;
+				asteroid2.radius=newRadius;
 				objects.push(asteroid);
 				objects.push(asteroid2);
 			}
@@ -105,9 +107,7 @@ function update(elapsedTime) {
 			
 		}
 	});
-	if(player.fire==true){
-		console.log(player.fire);
-	}
+  
   player.update(elapsedTime);
   objects.forEach(function(object, index) {
 	  //delete bullet if out of bounds
@@ -122,16 +122,16 @@ function update(elapsedTime) {
 	  }
 	  object.update(elapsedTime);
   });
-  
-  if(count>5){
-	  var playerObject = objects[playerIndex];
-	  if(playerObject.fire==true){
-		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
-	  }
-	  console.log(playerObject.fire);
-	  count=0;
-	  playerObject.fire=false;
+ 
+  var playerObject = objects[playerIndex];
+  if(playerObject.fire==true){
+	  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
+	  laserShoot.play();
   }
+  count=0;
+  playerObject.fire=false;
+
+  
   count++;
 }
 
@@ -150,7 +150,6 @@ function render(elapsedTime, ctx) {
 	  object.render(elapsedTime,ctx);
   });
 }
-
 },{"./asteroid.js":2,"./bullet.js":3,"./game.js":4,"./player.js":5}],2:[function(require,module,exports){
 "use strict";
 
@@ -243,7 +242,7 @@ function Bullet(position, velocity, angle, canvas) {
     x: velocity.y*Math.sin(angle)-velocity.x * Math.cos(angle),
     y: velocity.y * Math.cos(angle) + velocity.x*Math.sin(angle)
   }
-  this.radius = 8;
+  this.radius = 3;
   this.color="white";
   this.id="bullet";
   this.index=0;
@@ -288,7 +287,6 @@ Bullet.prototype.render = function(time, ctx) {
 
   ctx.restore();
 }
-
 },{}],4:[function(require,module,exports){
 "use strict";
 
@@ -350,7 +348,7 @@ Game.prototype.loop = function(newTime) {
 },{}],5:[function(require,module,exports){
 "use strict";
 
-const MS_PER_FRAME = 1000/8;
+const MS_PER_FRAME = 1000/25;
 
 /**
  * @module exports the Player class
@@ -383,6 +381,7 @@ function Player(position, canvas) {
   this.fire = false;
   this.color="white";
   this.index=0;
+  this.tick=0;
 
   var self = this;
   window.onkeydown = function(event) {
@@ -431,6 +430,19 @@ function Player(position, canvas) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Player.prototype.update = function(time) {
+	
+	if(this.tick > 0 && this.tick<20){
+		this.fire=false;
+		this.tick++;
+	}
+	else if(this.tick>=20 && this.fire==true)
+	{		
+		this.tick=0;
+	}
+	else if(this.tick==0){
+		this.tick++;
+	}
+	
   // Apply angular velocity
   if(this.steerLeft) {
     this.angle += time * 0.005;

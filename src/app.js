@@ -10,7 +10,7 @@ const Bullet = require('./bullet.js');
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
-
+var laserShoot = new Audio("assets/Laser_Shoot.wav");
 var objects = [];
 var count = 0;
 var playerIndex = 0;
@@ -84,12 +84,14 @@ function update(elapsedTime) {
 			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
 			if(asteroidObject.index==0)asteroidObject.index=1;
 			var asteroidRadius=asteroidObject.radius;
-			if(asteroidRadius>30){
+			if(asteroidRadius>13){
+				
 				var newRadius = asteroidRadius/2;
+				console.log(newRadius);
 				var asteroid = new Asteroid({x: asteroidObject.position.x+newRadius + 1 , y: asteroidObject.position.y}, canvas);
-				asteroid.radius=newRadius+5;
+				asteroid.radius=newRadius;
 				var asteroid2 = new Asteroid({x: asteroidObject.position.x-newRadius + 1 , y: asteroidObject.position.y}, canvas);
-				asteroid2.radius=newRadius+5;
+				asteroid2.radius=newRadius;
 				objects.push(asteroid);
 				objects.push(asteroid2);
 			}
@@ -104,9 +106,7 @@ function update(elapsedTime) {
 			
 		}
 	});
-	if(player.fire==true){
-		console.log(player.fire);
-	}
+  
   player.update(elapsedTime);
   objects.forEach(function(object, index) {
 	  //delete bullet if out of bounds
@@ -121,19 +121,16 @@ function update(elapsedTime) {
 	  }
 	  object.update(elapsedTime);
   });
-  
-  if(count>5){
-	  var playerObject = objects.filter(function(obj){
-		  
-		  return obj.id=="player";
-	  });
-	  if(playerObject.fire==true){
-		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle,canvas));
-	  }
-	  console.log("made it");
-	  count=0;
-	  playerObject.fire=false;
+ 
+  var playerObject = objects[playerIndex];
+  if(playerObject.fire==true){
+	  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
+	  laserShoot.play();
   }
+  count=0;
+  playerObject.fire=false;
+
+  
   count++;
 }
 

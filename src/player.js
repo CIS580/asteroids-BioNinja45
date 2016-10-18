@@ -1,6 +1,6 @@
 "use strict";
 
-const MS_PER_FRAME = 1000/8;
+const MS_PER_FRAME = 1000/25;
 
 /**
  * @module exports the Player class
@@ -33,6 +33,7 @@ function Player(position, canvas) {
   this.fire = false;
   this.color="white";
   this.index=0;
+  this.tick=0;
 
   var self = this;
   window.onkeydown = function(event) {
@@ -81,6 +82,19 @@ function Player(position, canvas) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Player.prototype.update = function(time) {
+	
+	if(this.tick > 0 && this.tick<20){
+		this.fire=false;
+		this.tick++;
+	}
+	else if(this.tick>=20 && this.fire==true)
+	{		
+		this.tick=0;
+	}
+	else if(this.tick==0){
+		this.tick++;
+	}
+	
   // Apply angular velocity
   if(this.steerLeft) {
     this.angle += time * 0.005;
