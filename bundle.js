@@ -489,7 +489,6 @@ function Player(position, canvas) {
 
   var self = this;
   window.onkeydown = function(event) {
-	  console.log(event.key);
     switch(event.key) {
 		
       case 'ArrowUp': // up
