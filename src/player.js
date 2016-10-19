@@ -55,7 +55,7 @@ function Player(position, canvas) {
       case 'd':
         self.steerRight = true;
         break;
-	  case ' ':
+	  case 'Enter':
 		self.fire = true;
 		break;
 	  case 'r':

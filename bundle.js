@@ -1,4 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+//The collision code was made my Nathan H Bean at: https://github.com/zombiepaladin/pool
+
+
 "use strict;"
 
 /* Classes */
@@ -14,6 +17,7 @@ var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
 var laserShoot = new Audio("assets/Laser_Shoot.wav");
 var asteroidHit = new Audio("assets/Asteroid_Hit.wav");
+var playerHit = new Audio("assets/Player_Hit.wav");
 var objects = [];
 var count = 0;
 var playerIndex = 0;
@@ -167,7 +171,7 @@ function update(elapsedTime) {
 			pair.b.velocity.x = b.x;
 			pair.b.velocity.y = b.y;
 			
-			//asteroidHit.play();
+			asteroidHit.play();
 		}
 		else if((pair.a.id=="player" || pair.b.id=="player") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
 			
@@ -180,7 +184,7 @@ function update(elapsedTime) {
 			playerObject.velocity={x: 0, y: 0}
 			playerObject.invulnerable = true;
 			playerObject.invulnerableCounter = Invulnerabletime;
-		
+			playerHit.play();
 		}
 		
 
@@ -236,7 +240,6 @@ function render(elapsedTime, ctx) {
 	}
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  console.log(player);
   player.render(elapsedTime, ctx);
   objects.forEach(function(object, index) {
 	  object.render(elapsedTime,ctx);
@@ -501,7 +504,7 @@ function Player(position, canvas) {
       case 'd':
         self.steerRight = true;
         break;
-	  case ' ':
+	  case 'Enter':
 		self.fire = true;
 		break;
 	  case 'r':

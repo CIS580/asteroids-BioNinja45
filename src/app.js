@@ -1,3 +1,6 @@
+//The collision code was made my Nathan H Bean at: https://github.com/zombiepaladin/pool
+
+
 "use strict;"
 
 /* Classes */
@@ -13,6 +16,7 @@ var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
 var laserShoot = new Audio("assets/Laser_Shoot.wav");
 var asteroidHit = new Audio("assets/Asteroid_Hit.wav");
+var playerHit = new Audio("assets/Player_Hit.wav");
 var objects = [];
 var count = 0;
 var playerIndex = 0;
@@ -166,7 +170,7 @@ function update(elapsedTime) {
 			pair.b.velocity.x = b.x;
 			pair.b.velocity.y = b.y;
 			
-			//asteroidHit.play();
+			asteroidHit.play();
 		}
 		else if((pair.a.id=="player" || pair.b.id=="player") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
 			
@@ -179,7 +183,7 @@ function update(elapsedTime) {
 			playerObject.velocity={x: 0, y: 0}
 			playerObject.invulnerable = true;
 			playerObject.invulnerableCounter = Invulnerabletime;
-		
+			playerHit.play();
 		}
 		
 
@@ -235,7 +239,6 @@ function render(elapsedTime, ctx) {
 	}
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  console.log(player);
   player.render(elapsedTime, ctx);
   objects.forEach(function(object, index) {
 	  object.render(elapsedTime,ctx);
