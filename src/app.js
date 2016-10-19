@@ -20,8 +20,10 @@ var nextLevelCheck = false;
 var lives = 3;
 var level = 1;
 var score = 0;
+var canWarp = "";
 var numberOfAsteroids=5;
 var GameOver=false;
+var Invulnerabletime = 150;
 objects.push(player);
 createAsteroids(numberOfAsteroids);
 
@@ -52,7 +54,7 @@ function startNewLevel(playerIndex){
 	playerObject.position={x: canvas.width/2, y: canvas.height/2};
 	playerObject.velocity={x: 0, y: 0}
 	playerObject.invulnerable = true;
-	playerObject.invulnerableCounter = 100;
+	playerObject.invulnerableCounter = Invulnerabletime;
 }
 function gameOver(){
 	GameOver=true;
@@ -79,7 +81,11 @@ function update(elapsedTime) {
 	var playerIndex;
 	objects.forEach(function(object, index){
 		if(object.id=="asteroid")nextLevelCheck=false;
-		if(object.id=="player") playerIndex = index;
+		if(object.id=="player") {
+			playerIndex = index;
+			if(object.warpCounter<=0)canWarp="Operational";
+			else{canWarp="On Cooldown";}
+		}
 		object.color="white";
 		object.index=index;
 		active = active.filter(function(object2){
@@ -132,7 +138,6 @@ function update(elapsedTime) {
 			
 		}
 		else if(pair.a.id=="asteroid" && pair.b.id=="asteroid"){
-			console.log('hi2');
 			var collisionNormal = {
 				x: pair.a.position.x - pair.b.position.x,
 				y: pair.a.position.y - pair.b.position.y
@@ -173,7 +178,7 @@ function update(elapsedTime) {
 			playerObject.position={x: canvas.width/2, y: canvas.height/2};
 			playerObject.velocity={x: 0, y: 0}
 			playerObject.invulnerable = true;
-			playerObject.invulnerableCounter = 100;
+			playerObject.invulnerableCounter = Invulnerabletime;
 		
 		}
 		
@@ -197,7 +202,6 @@ function update(elapsedTime) {
   });
  
   var playerObject = objects[playerIndex];
-  console.log(playerObject,playerIndex);
 	  if(playerObject.fire==true){
 		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
 		  laserShoot.play();
@@ -231,6 +235,7 @@ function render(elapsedTime, ctx) {
 	}
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  console.log(player);
   player.render(elapsedTime, ctx);
   objects.forEach(function(object, index) {
 	  object.render(elapsedTime,ctx);
@@ -240,4 +245,5 @@ function render(elapsedTime, ctx) {
 	ctx.fillText("Level: " +level, 10,30);
 	ctx.fillText("Lives: " +lives, 10,60);
 	ctx.fillText("Score: " +score, 10,90);
+	ctx.fillText("Warp Drive:" +canWarp, 400,30);
 }

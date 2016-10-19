@@ -36,10 +36,13 @@ function Player(position, canvas) {
   this.tick=0;
   this.invulnerable = false;
   this.invulnerableCounter = 0;
+  this.warpCounter = 0;
 
   var self = this;
   window.onkeydown = function(event) {
+	  console.log(event.key);
     switch(event.key) {
+		
       case 'ArrowUp': // up
       case 'w':
         self.thrusting = true;
@@ -54,6 +57,15 @@ function Player(position, canvas) {
         break;
 	  case ' ':
 		self.fire = true;
+		break;
+	  case 'r':
+		if(self.warpCounter<=0){
+			
+			self.invulnerable=true;
+			self.invulnerableCounter=150;
+			self.warpCounter=1000;
+			self.position={x: Math.random() *self.worldWidth, y: Math.random() *self.worldHeight};
+		}
 		break;
     }
   }
@@ -84,6 +96,7 @@ function Player(position, canvas) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Player.prototype.update = function(time) {
+	this.warpCounter--;
 	if(this.invulnerableCounter>0){
 		this.invulnerableCounter--;
 		this.color="green";

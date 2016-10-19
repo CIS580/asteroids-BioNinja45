@@ -21,8 +21,10 @@ var nextLevelCheck = false;
 var lives = 3;
 var level = 1;
 var score = 0;
+var canWarp = "";
 var numberOfAsteroids=5;
 var GameOver=false;
+var Invulnerabletime = 150;
 objects.push(player);
 createAsteroids(numberOfAsteroids);
 
@@ -53,7 +55,7 @@ function startNewLevel(playerIndex){
 	playerObject.position={x: canvas.width/2, y: canvas.height/2};
 	playerObject.velocity={x: 0, y: 0}
 	playerObject.invulnerable = true;
-	playerObject.invulnerableCounter = 100;
+	playerObject.invulnerableCounter = Invulnerabletime;
 }
 function gameOver(){
 	GameOver=true;
@@ -80,7 +82,11 @@ function update(elapsedTime) {
 	var playerIndex;
 	objects.forEach(function(object, index){
 		if(object.id=="asteroid")nextLevelCheck=false;
-		if(object.id=="player") playerIndex = index;
+		if(object.id=="player") {
+			playerIndex = index;
+			if(object.warpCounter<=0)canWarp="Operational";
+			else{canWarp="On Cooldown";}
+		}
 		object.color="white";
 		object.index=index;
 		active = active.filter(function(object2){
@@ -133,7 +139,6 @@ function update(elapsedTime) {
 			
 		}
 		else if(pair.a.id=="asteroid" && pair.b.id=="asteroid"){
-			console.log('hi2');
 			var collisionNormal = {
 				x: pair.a.position.x - pair.b.position.x,
 				y: pair.a.position.y - pair.b.position.y
@@ -174,7 +179,7 @@ function update(elapsedTime) {
 			playerObject.position={x: canvas.width/2, y: canvas.height/2};
 			playerObject.velocity={x: 0, y: 0}
 			playerObject.invulnerable = true;
-			playerObject.invulnerableCounter = 100;
+			playerObject.invulnerableCounter = Invulnerabletime;
 		
 		}
 		
@@ -198,7 +203,6 @@ function update(elapsedTime) {
   });
  
   var playerObject = objects[playerIndex];
-  console.log(playerObject,playerIndex);
 	  if(playerObject.fire==true){
 		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
 		  laserShoot.play();
@@ -232,6 +236,7 @@ function render(elapsedTime, ctx) {
 	}
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  console.log(player);
   player.render(elapsedTime, ctx);
   objects.forEach(function(object, index) {
 	  object.render(elapsedTime,ctx);
@@ -241,6 +246,7 @@ function render(elapsedTime, ctx) {
 	ctx.fillText("Level: " +level, 10,30);
 	ctx.fillText("Lives: " +lives, 10,60);
 	ctx.fillText("Score: " +score, 10,90);
+	ctx.fillText("Warp Drive:" +canWarp, 400,30);
 }
 },{"./asteroid.js":2,"./bullet.js":3,"./game.js":4,"./player.js":5,"./vector":6}],2:[function(require,module,exports){
 "use strict";
@@ -476,10 +482,13 @@ function Player(position, canvas) {
   this.tick=0;
   this.invulnerable = false;
   this.invulnerableCounter = 0;
+  this.warpCounter = 0;
 
   var self = this;
   window.onkeydown = function(event) {
+	  console.log(event.key);
     switch(event.key) {
+		
       case 'ArrowUp': // up
       case 'w':
         self.thrusting = true;
@@ -494,6 +503,15 @@ function Player(position, canvas) {
         break;
 	  case ' ':
 		self.fire = true;
+		break;
+	  case 'r':
+		if(self.warpCounter<=0){
+			
+			self.invulnerable=true;
+			self.invulnerableCounter=150;
+			self.warpCounter=1000;
+			self.position={x: Math.random() *self.worldWidth, y: Math.random() *self.worldHeight};
+		}
 		break;
     }
   }
@@ -524,6 +542,7 @@ function Player(position, canvas) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Player.prototype.update = function(time) {
+	this.warpCounter--;
 	if(this.invulnerableCounter>0){
 		this.invulnerableCounter--;
 		this.color="green";
