@@ -34,6 +34,8 @@ function Player(position, canvas) {
   this.color="white";
   this.index=0;
   this.tick=0;
+  this.invulnerable = false;
+  this.invulnerableCounter = 0;
 
   var self = this;
   window.onkeydown = function(event) {
@@ -82,7 +84,14 @@ function Player(position, canvas) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Player.prototype.update = function(time) {
-	
+	if(this.invulnerableCounter>0){
+		this.invulnerableCounter--;
+		this.color="green";
+	}
+	else{
+		this.invulnerable=false;
+		this.color="white";
+	}
 	if(this.tick > 0 && this.tick<20){
 		this.fire=false;
 		this.tick++;
@@ -97,10 +106,10 @@ Player.prototype.update = function(time) {
 	
   // Apply angular velocity
   if(this.steerLeft) {
-    this.angle += time * 0.005;
+    this.angle += time * 0.003;
   }
   if(this.steerRight) {
-    this.angle -= 0.1;
+    this.angle -= time * 0.003;
   }
   // Apply acceleration
   if(this.thrusting) {
@@ -108,9 +117,13 @@ Player.prototype.update = function(time) {
       x: Math.sin(this.angle),
       y: Math.cos(this.angle)
     }
-    this.velocity.x -= acceleration.x;
-    this.velocity.y -= acceleration.y;
+    this.velocity.x -= acceleration.x/20;
+    this.velocity.y -= acceleration.y/20;
   }
+  if(this.velocity.x > 6)this.velocity.x=6;
+  if(this.velocity.x < -6)this.velocity.x=-6;
+  if(this.velocity.y > 6)this.velocity.y=6;
+  if(this.velocity.y < -6)this.velocity.y=-6;
   // Apply velocity
   this.position.x += this.velocity.x;
   this.position.y += this.velocity.y;

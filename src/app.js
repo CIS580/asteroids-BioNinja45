@@ -5,17 +5,25 @@ const Game = require('./game.js');
 const Player = require('./player.js');
 const Asteroid = require('./asteroid.js');
 const Bullet = require('./bullet.js');
+const Vector = require('./vector');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
 var laserShoot = new Audio("assets/Laser_Shoot.wav");
+var asteroidHit = new Audio("assets/Asteroid_Hit.wav");
 var objects = [];
 var count = 0;
 var playerIndex = 0;
+var nextLevelCheck = false;
+var lives = 3;
+var level = 1;
+var numberOfAsteroids=1;
+var GameOver=false;
 objects.push(player);
-createAsteroids(10);
+createAsteroids(numberOfAsteroids);
+
 
 /**
  * @function masterLoop
@@ -35,6 +43,17 @@ function createAsteroids(total){
 		objects.push(asteroid);
 	}
 }
+
+function startNewLevel(){
+	numberOfAsteroids+=3;
+	createAsteroids(numberOfAsteroids);
+}
+function gameOver(){
+	GameOver=true;
+	
+}
+
+
 /**
  * @function update
  * Updates the game state, moving
@@ -44,11 +63,15 @@ function createAsteroids(total){
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
+	if(GameOver==true)return;
 	
 	objects.sort(function(a,b){return a.position.x - b.position.x});
 	var active = [];
 	var potentiallyColliding = [];
+	if(nextLevelCheck==true) startNewLevel()
+	nextLevelCheck=true;
 	objects.forEach(function(object, index){
+		if(object.id=="asteroid")nextLevelCheck=false;
 		object.color="white";
 		object.index=index;
 		active = active.filter(function(object2){
@@ -75,11 +98,9 @@ function update(elapsedTime) {
 		}
 	});
 	collisions.forEach(function(pair){
-		if(pair.a.id=="player"||pair.b.id=="player"){
-			pair.a.color="orange";
-			pair.b.color="orange";
-		}
-		else if((pair.a.id=="bullet" || pair.b.id=="bullet") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
+		
+		if((pair.a.id=="bullet" || pair.b.id=="bullet") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
+			console.log('hi');
 			var bulletObject = (pair.a.id=="bullet")?pair.a:pair.b;
 			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
 			if(asteroidObject.index==0)asteroidObject.index=1;
@@ -87,7 +108,6 @@ function update(elapsedTime) {
 			if(asteroidRadius>13){
 				
 				var newRadius = asteroidRadius/2;
-				console.log(newRadius);
 				var asteroid = new Asteroid({x: asteroidObject.position.x+newRadius + 1 , y: asteroidObject.position.y}, canvas);
 				asteroid.radius=newRadius;
 				var asteroid2 = new Asteroid({x: asteroidObject.position.x-newRadius + 1 , y: asteroidObject.position.y}, canvas);
@@ -105,6 +125,53 @@ function update(elapsedTime) {
 			}
 			
 		}
+		else if(pair.a.id=="asteroid" && pair.b.id=="asteroid"){
+			console.log('hi2');
+			var collisionNormal = {
+				x: pair.a.position.x - pair.b.position.x,
+				y: pair.a.position.y - pair.b.position.y
+			}
+			// calculate the overlap between balls
+			var overlap = pair.a.radius+pair.b.radius + 2 - Vector.magnitude(collisionNormal);
+			var collisionNormal = Vector.normalize(collisionNormal);
+			pair.a.position.x += collisionNormal.x * overlap;
+			pair.a.position.y += collisionNormal.y * overlap;
+			pair.b.position.x -= collisionNormal.x * overlap;
+			pair.b.position.y -= collisionNormal.y * overlap;
+			// Rotate the problem space so that the normal
+			// of collision lies along the x-axis
+			var angle = Math.atan2(collisionNormal.y, collisionNormal.x);
+			var a = Vector.rotate(pair.a.velocity, angle);
+			var b = Vector.rotate(pair.b.velocity, angle);
+			// Solve the collision along the x-axis
+			var s = a.x;
+			a.x = b.x;
+			b.x = s;
+			// Rotate the problem space back to world space
+			a = Vector.rotate(a, -angle);
+			b = Vector.rotate(b, -angle);
+			pair.a.velocity.x = a.x;
+			pair.a.velocity.y = a.y;
+			pair.b.velocity.x = b.x;
+			pair.b.velocity.y = b.y;
+			
+			//asteroidHit.play();
+		}
+		else if((pair.a.id=="player" || pair.b.id=="player") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
+			
+			var playerObject = (pair.a.id=="player")?pair.a:pair.b;
+			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
+			if(playerObject.invulnerable==true)return;
+			lives-=1;
+			if(lives<1)gameOver();
+			playerObject.position={x: canvas.width/2, y: canvas.height/2};
+			playerObject.velocity={x: 0, y: 0}
+			playerObject.invulnerable = true;
+			playerObject.invulnerableCounter = 100;
+		
+		}
+		
+
 	});
   
   player.update(elapsedTime);
@@ -142,10 +209,23 @@ function update(elapsedTime) {
   * @param {CanvasRenderingContext2D} ctx the context to render to
   */
 function render(elapsedTime, ctx) {
+	
+	
+	if(GameOver==true){
+		ctx.font = "75px Arial";
+		ctx.fillText("GAME OVER", 250,250);
+		ctx.font = "50px Arial";
+		ctx.fillText("REFRESH BROWSER TO RESTART",100,350);
+		return;
+	}
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   player.render(elapsedTime, ctx);
   objects.forEach(function(object, index) {
 	  object.render(elapsedTime,ctx);
   });
+  ctx.fillStyle = "red";
+	ctx.font = "25px Arial";
+	ctx.fillText("Level: " +level, 10,30);
+	ctx.fillText("Lives: " +lives, 10,60);
 }

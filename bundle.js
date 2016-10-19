@@ -6,17 +6,25 @@ const Game = require('./game.js');
 const Player = require('./player.js');
 const Asteroid = require('./asteroid.js');
 const Bullet = require('./bullet.js');
+const Vector = require('./vector');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player({x: canvas.width/2, y: canvas.height/2}, canvas);
 var laserShoot = new Audio("assets/Laser_Shoot.wav");
+var asteroidHit = new Audio("assets/Asteroid_Hit.wav");
 var objects = [];
 var count = 0;
 var playerIndex = 0;
+var nextLevelCheck = false;
+var lives = 3;
+var level = 1;
+var numberOfAsteroids=1;
+var GameOver=false;
 objects.push(player);
-createAsteroids(10);
+createAsteroids(numberOfAsteroids);
+
 
 /**
  * @function masterLoop
@@ -36,6 +44,17 @@ function createAsteroids(total){
 		objects.push(asteroid);
 	}
 }
+
+function startNewLevel(){
+	numberOfAsteroids+=3;
+	createAsteroids(numberOfAsteroids);
+}
+function gameOver(){
+	GameOver=true;
+	
+}
+
+
 /**
  * @function update
  * Updates the game state, moving
@@ -45,11 +64,15 @@ function createAsteroids(total){
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
+	if(GameOver==true)return;
 	
 	objects.sort(function(a,b){return a.position.x - b.position.x});
 	var active = [];
 	var potentiallyColliding = [];
+	if(nextLevelCheck==true) startNewLevel()
+	nextLevelCheck=true;
 	objects.forEach(function(object, index){
+		if(object.id=="asteroid")nextLevelCheck=false;
 		object.color="white";
 		object.index=index;
 		active = active.filter(function(object2){
@@ -76,11 +99,9 @@ function update(elapsedTime) {
 		}
 	});
 	collisions.forEach(function(pair){
-		if(pair.a.id=="player"||pair.b.id=="player"){
-			pair.a.color="orange";
-			pair.b.color="orange";
-		}
-		else if((pair.a.id=="bullet" || pair.b.id=="bullet") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
+		
+		if((pair.a.id=="bullet" || pair.b.id=="bullet") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
+			console.log('hi');
 			var bulletObject = (pair.a.id=="bullet")?pair.a:pair.b;
 			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
 			if(asteroidObject.index==0)asteroidObject.index=1;
@@ -88,7 +109,6 @@ function update(elapsedTime) {
 			if(asteroidRadius>13){
 				
 				var newRadius = asteroidRadius/2;
-				console.log(newRadius);
 				var asteroid = new Asteroid({x: asteroidObject.position.x+newRadius + 1 , y: asteroidObject.position.y}, canvas);
 				asteroid.radius=newRadius;
 				var asteroid2 = new Asteroid({x: asteroidObject.position.x-newRadius + 1 , y: asteroidObject.position.y}, canvas);
@@ -106,6 +126,53 @@ function update(elapsedTime) {
 			}
 			
 		}
+		else if(pair.a.id=="asteroid" && pair.b.id=="asteroid"){
+			console.log('hi2');
+			var collisionNormal = {
+				x: pair.a.position.x - pair.b.position.x,
+				y: pair.a.position.y - pair.b.position.y
+			}
+			// calculate the overlap between balls
+			var overlap = pair.a.radius+pair.b.radius + 2 - Vector.magnitude(collisionNormal);
+			var collisionNormal = Vector.normalize(collisionNormal);
+			pair.a.position.x += collisionNormal.x * overlap;
+			pair.a.position.y += collisionNormal.y * overlap;
+			pair.b.position.x -= collisionNormal.x * overlap;
+			pair.b.position.y -= collisionNormal.y * overlap;
+			// Rotate the problem space so that the normal
+			// of collision lies along the x-axis
+			var angle = Math.atan2(collisionNormal.y, collisionNormal.x);
+			var a = Vector.rotate(pair.a.velocity, angle);
+			var b = Vector.rotate(pair.b.velocity, angle);
+			// Solve the collision along the x-axis
+			var s = a.x;
+			a.x = b.x;
+			b.x = s;
+			// Rotate the problem space back to world space
+			a = Vector.rotate(a, -angle);
+			b = Vector.rotate(b, -angle);
+			pair.a.velocity.x = a.x;
+			pair.a.velocity.y = a.y;
+			pair.b.velocity.x = b.x;
+			pair.b.velocity.y = b.y;
+			
+			//asteroidHit.play();
+		}
+		else if((pair.a.id=="player" || pair.b.id=="player") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
+			
+			var playerObject = (pair.a.id=="player")?pair.a:pair.b;
+			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
+			if(playerObject.invulnerable==true)return;
+			lives-=1;
+			if(lives<1)gameOver();
+			playerObject.position={x: canvas.width/2, y: canvas.height/2};
+			playerObject.velocity={x: 0, y: 0}
+			playerObject.invulnerable = true;
+			playerObject.invulnerableCounter = 100;
+		
+		}
+		
+
 	});
   
   player.update(elapsedTime);
@@ -143,14 +210,27 @@ function update(elapsedTime) {
   * @param {CanvasRenderingContext2D} ctx the context to render to
   */
 function render(elapsedTime, ctx) {
+	
+	
+	if(GameOver==true){
+		ctx.font = "75px Arial";
+		ctx.fillText("GAME OVER", 250,250);
+		ctx.font = "50px Arial";
+		ctx.fillText("REFRESH BROWSER TO RESTART",100,350);
+		return;
+	}
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   player.render(elapsedTime, ctx);
   objects.forEach(function(object, index) {
 	  object.render(elapsedTime,ctx);
   });
+  ctx.fillStyle = "red";
+	ctx.font = "25px Arial";
+	ctx.fillText("Level: " +level, 10,30);
+	ctx.fillText("Lives: " +lives, 10,60);
 }
-},{"./asteroid.js":2,"./bullet.js":3,"./game.js":4,"./player.js":5}],2:[function(require,module,exports){
+},{"./asteroid.js":2,"./bullet.js":3,"./game.js":4,"./player.js":5,"./vector":6}],2:[function(require,module,exports){
 "use strict";
 
 
@@ -382,6 +462,8 @@ function Player(position, canvas) {
   this.color="white";
   this.index=0;
   this.tick=0;
+  this.invulnerable = false;
+  this.invulnerableCounter = 0;
 
   var self = this;
   window.onkeydown = function(event) {
@@ -430,7 +512,14 @@ function Player(position, canvas) {
  * {DOMHighResTimeStamp} time the elapsed time since the last frame
  */
 Player.prototype.update = function(time) {
-	
+	if(this.invulnerableCounter>0){
+		this.invulnerableCounter--;
+		this.color="green";
+	}
+	else{
+		this.invulnerable=false;
+		this.color="white";
+	}
 	if(this.tick > 0 && this.tick<20){
 		this.fire=false;
 		this.tick++;
@@ -445,10 +534,10 @@ Player.prototype.update = function(time) {
 	
   // Apply angular velocity
   if(this.steerLeft) {
-    this.angle += time * 0.005;
+    this.angle += time * 0.003;
   }
   if(this.steerRight) {
-    this.angle -= 0.1;
+    this.angle -= time * 0.003;
   }
   // Apply acceleration
   if(this.thrusting) {
@@ -456,9 +545,13 @@ Player.prototype.update = function(time) {
       x: Math.sin(this.angle),
       y: Math.cos(this.angle)
     }
-    this.velocity.x -= acceleration.x;
-    this.velocity.y -= acceleration.y;
+    this.velocity.x -= acceleration.x/20;
+    this.velocity.y -= acceleration.y/20;
   }
+  if(this.velocity.x > 6)this.velocity.x=6;
+  if(this.velocity.x < -6)this.velocity.x=-6;
+  if(this.velocity.y > 6)this.velocity.y=6;
+  if(this.velocity.y < -6)this.velocity.y=-6;
   // Apply velocity
   this.position.x += this.velocity.x;
   this.position.y += this.velocity.y;
@@ -500,6 +593,64 @@ Player.prototype.render = function(time, ctx) {
     ctx.stroke();
   }
   ctx.restore();
+}
+
+},{}],6:[function(require,module,exports){
+/**
+ * @module Vector
+ * A library of vector functions.
+ */
+module.exports = exports = {
+  rotate: rotate,
+  dotProduct: dotProduct,
+  magnitude: magnitude,
+  normalize: normalize
+}
+
+/**
+ * @function rotate
+ * Rotates a vector about the Z-axis
+ * @param {Vector} a - the vector to rotate
+ * @param {float} angle - the angle to roatate by (in radians)
+ * @returns a new vector representing the rotated original
+ */
+function rotate(a, angle) {
+  return {
+    x: a.x * Math.cos(angle) - a.y * Math.sin(angle),
+    y: a.x * Math.sin(angle) + a.y * Math.cos(angle)
+  }
+}
+
+/**
+ * @function dotProduct
+ * Computes the dot product of two vectors
+ * @param {Vector} a the first vector
+ * @param {Vector} b the second vector
+ * @return the computed dot product
+ */
+function dotProduct(a, b) {
+  return a.x * b.x + a.y * b.y
+}
+
+/**
+ * @function magnitude
+ * Computes the magnitude of a vector
+ * @param {Vector} a the vector
+ * @returns the calculated magnitude
+ */
+function magnitude(a) {
+  return Math.sqrt(a.x * a.x + a.y * a.y);
+}
+
+/**
+ * @function normalize
+ * Normalizes the vector
+ * @param {Vector} a the vector to normalize
+ * @returns a new vector that is the normalized original
+ */
+function normalize(a) {
+  var mag = magnitude(a);
+  return {x: a.x / mag, y: a.y / mag};
 }
 
 },{}]},{},[1]);
