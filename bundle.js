@@ -20,7 +20,8 @@ var playerIndex = 0;
 var nextLevelCheck = false;
 var lives = 3;
 var level = 1;
-var numberOfAsteroids=1;
+var score = 0;
+var numberOfAsteroids=5;
 var GameOver=false;
 objects.push(player);
 createAsteroids(numberOfAsteroids);
@@ -45,9 +46,14 @@ function createAsteroids(total){
 	}
 }
 
-function startNewLevel(){
+function startNewLevel(playerIndex){
 	numberOfAsteroids+=3;
 	createAsteroids(numberOfAsteroids);
+	playerObject = objects[playerIndex];
+	playerObject.position={x: canvas.width/2, y: canvas.height/2};
+	playerObject.velocity={x: 0, y: 0}
+	playerObject.invulnerable = true;
+	playerObject.invulnerableCounter = 100;
 }
 function gameOver(){
 	GameOver=true;
@@ -69,10 +75,12 @@ function update(elapsedTime) {
 	objects.sort(function(a,b){return a.position.x - b.position.x});
 	var active = [];
 	var potentiallyColliding = [];
-	if(nextLevelCheck==true) startNewLevel()
+	
 	nextLevelCheck=true;
+	var playerIndex;
 	objects.forEach(function(object, index){
 		if(object.id=="asteroid")nextLevelCheck=false;
+		if(object.id=="player") playerIndex = index;
 		object.color="white";
 		object.index=index;
 		active = active.filter(function(object2){
@@ -83,6 +91,7 @@ function update(elapsedTime) {
 		});
 		active.push(object);
 	});
+	if(nextLevelCheck==true) startNewLevel(playerIndex);
 	
 	var collisions = [];
 	potentiallyColliding.forEach(function(pair){
@@ -91,9 +100,6 @@ function update(elapsedTime) {
 		Math.pow(pair.a.position.y - pair.b.position.y, 2);
 		// (15 + 15)^2 = 900 -> sum of two balls' raidius squared
 		if(distSquared < Math.pow(pair.a.radius + pair.b.radius,2)) {
-			// Color the collision pair for visual debugging
-			pair.a.color = 'red';
-			pair.b.color = 'green';
 			// Push the colliding pair into our collisions array
 			collisions.push(pair);
 		}
@@ -101,7 +107,7 @@ function update(elapsedTime) {
 	collisions.forEach(function(pair){
 		
 		if((pair.a.id=="bullet" || pair.b.id=="bullet") && (pair.a.id=="asteroid" || pair.b.id=="asteroid")){
-			console.log('hi');
+			score++;
 			var bulletObject = (pair.a.id=="bullet")?pair.a:pair.b;
 			var asteroidObject = (pair.a.id=="asteroid")?pair.a:pair.b;
 			if(asteroidObject.index==0)asteroidObject.index=1;
@@ -176,11 +182,12 @@ function update(elapsedTime) {
 	});
   
   player.update(elapsedTime);
+  var objectsToSpliceIndexes = [];
   objects.forEach(function(object, index) {
 	  //delete bullet if out of bounds
 	  if(object.id=="bullet"){
 		  if(object.outOfBounds()){
-			  objects.splice(index,1);
+			  objectsToSpliceIndexes.push(index);
 			  return;
 		  }
 	  }
@@ -191,10 +198,14 @@ function update(elapsedTime) {
   });
  
   var playerObject = objects[playerIndex];
-  if(playerObject.fire==true){
-	  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
-	  laserShoot.play();
-  }
+  console.log(playerObject,playerIndex);
+	  if(playerObject.fire==true){
+		  objects.push(new Bullet({x: playerObject.position.x, y: playerObject.position.y},{ x:2,y: 2},playerObject.angle + (5*Math.PI/4),canvas));
+		  laserShoot.play();
+	  }
+  objectsToSpliceIndexes.forEach(function(object,index){
+	 objects.splice(object,1);
+ });
   count=0;
   playerObject.fire=false;
 
@@ -229,6 +240,7 @@ function render(elapsedTime, ctx) {
 	ctx.font = "25px Arial";
 	ctx.fillText("Level: " +level, 10,30);
 	ctx.fillText("Lives: " +lives, 10,60);
+	ctx.fillText("Score: " +score, 10,90);
 }
 },{"./asteroid.js":2,"./bullet.js":3,"./game.js":4,"./player.js":5,"./vector":6}],2:[function(require,module,exports){
 "use strict";
